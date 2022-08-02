@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "strict": false,
+    "alwaysStrict": false,
+    "noImplicitUseStrict": true,
+    "allowJs": false,
+    "checkJs": false,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "jsx": "react",
+    "target": "es5",
+    "module": "commonjs",
+    "noImplicitAny": false,
+    "noImplicitReturns": false,
+    "noImplicitThis": true,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "strictNullChecks": false,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "lib": [
+      "dom",
+      "es5",
+      "es6",
+      "es7",
+      "scripthost",
+      "es2018.promise"
+    ],
+    "moduleResolution": "node"
+  },
+  "include": [
+    "client",
+    "client/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ],
+  "typeRoots": [
+    "node_modules/@types"
+  ],
+  "rootDir": "client",
+  "outDir": "build"
+}
