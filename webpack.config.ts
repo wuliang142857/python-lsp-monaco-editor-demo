@@ -16,6 +16,7 @@ if (!commandTarget) {
 const isRelease: boolean = _.includes(_.toLower(commandTarget), "production");
 // const isRelease = false;
 
+// @ts-ignore
 const config: webpack.Configuration = {
     "mode": isRelease ? "production" : "development",
     "devtool": isRelease ? false : "cheap-module-source-map",
@@ -51,11 +52,15 @@ const config: webpack.Configuration = {
                 exclude: [/vscode-jsonrpc/, /vscode-languageclient/, /vscode-languageserver-protocol/]
             },
             {
+               "test": /\.(icon|eot|svg|ttf|TTF|woff|woff2)(\?\S*)?$/,
+                "loader": "file-loader",
+                "type": 'javascript/auto',
+                "exclude": /node_modules/,
+            },
+            {
                 "test": /\.(icon|eot|svg|ttf|TTF|woff|woff2|png|jpe?g|gif)(\?\S*)?$/,
                 "loader": "file-loader",
-                "query": {
-                    "name": "[name].[ext]?[hash]"
-                },
+                "include": path.resolve(__dirname, "./node_modules/monaco-editor-core"),
             },
             {
                 test: /\.css$/,
@@ -68,12 +73,6 @@ const config: webpack.Configuration = {
         "alias": {
             'vscode': require.resolve('monaco-languageclient/lib/vscode-compatibility'),
         }
-    },
-    "node": {
-        fs: 'empty',
-        child_process: 'empty',
-        net: 'empty',
-        crypto: 'empty'
     },
     plugins: [
         new webpack.ProgressPlugin(),

@@ -15,6 +15,7 @@ import * as server from '@codingame/monaco-jsonrpc/lib/server';
 import * as lsp from 'vscode-languageserver';
 
 const app = express();
+// 前端静态文件所在地址
 const rootDir = path.join(__dirname, "..");
 app.use(express.static(path.join(rootDir, "build")));
 
@@ -41,7 +42,6 @@ expressServer.on('upgrade', (request: http.IncomingMessage, socket: net.Socket, 
                 onClose: (cb) => webSocket.on('close', cb),
                 dispose: () => webSocket.close(),
             };
-            console.log({state: webSocket.readyState, open: webSocket.OPEN});
             // launch the server when the web socket is opened
             if (webSocket.readyState === webSocket.OPEN) {
                 launch(socket2);
@@ -55,13 +55,12 @@ expressServer.on('upgrade', (request: http.IncomingMessage, socket: net.Socket, 
 function launch(socket) {
     const reader = new rpc.WebSocketMessageReader(socket);
     const writer = new rpc.WebSocketMessageWriter(socket);
-    console.log('connection established');
     const socketConnection = server.createConnection(reader, writer, () =>
         socket.dispose()
     );
     const serverConnection = server.createServerProcess(
-        'JSON',
-        '/usr/local/bin/pylsp' // path to python-lsp-server called with pylsp command
+        'Python',
+        'pyls' // path to python-lsp-server called with pylsp command
     );
     server.forward(socketConnection, serverConnection, (message) => {
         // console.log('server forward');

@@ -40,7 +40,8 @@
     "webpack-dev-server": "^4.8.1"
   },
   "scripts": {
-    "dev": "webpack-dev-server --progress --compress --color --mode development",
-    "build": "webpack --config ./webpack.config.ts"
+    "build:server": "tsc --sourceMap --esModuleInterop server/server.ts",
+    "build:client": "webpack --config ./webpack.config.ts",
+    "start": "node server/server.js"
   }
 }
