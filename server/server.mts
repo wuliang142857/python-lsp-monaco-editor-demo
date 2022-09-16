@@ -6,13 +6,18 @@
 
 import * as path from 'path';
 import express from 'express';
-import * as ws from "ws";
+import { WebSocketServer } from 'ws';
 import * as http from "http";
 import * as net from "net";
 import * as url from "url";
-import * as rpc from "@codingame/monaco-jsonrpc";
-import * as server from '@codingame/monaco-jsonrpc/lib/server';
+import {IWebSocket, WebSocketMessageReader, WebSocketMessageWriter} from 'vscode-ws-jsonrpc';
+import * as server from 'vscode-ws-jsonrpc/server';
 import * as lsp from 'vscode-languageserver';
+import {Message} from 'vscode-languageserver';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 // 前端静态文件所在地址
@@ -21,7 +26,7 @@ app.use(express.static(path.join(rootDir, "build")));
 
 const expressServer = app.listen(3000);
 
-const wss = new ws.Server({
+const wss = new WebSocketServer({
     noServer: true,
     perMessageDeflate: false
 });
@@ -31,40 +36,40 @@ expressServer.on('upgrade', (request: http.IncomingMessage, socket: net.Socket, 
     if (pathname === '/lsp') {
         wss.handleUpgrade(request, socket, head, (webSocket) => {
             const socket2 = {
-                send: (content) =>
+                send: (content:any) =>
                     webSocket.send(content, (error) => {
                         if (error) {
                             throw error;
                         }
                     }),
-                onMessage: (cb) => webSocket.on('message', cb),
-                onError: (cb) => webSocket.on('error', cb),
-                onClose: (cb) => webSocket.on('close', cb),
+                onMessage: (cb:any) => webSocket.on('message', cb),
+                onError: (cb:any) => webSocket.on('error', cb),
+                onClose: (cb:any) => webSocket.on('close', cb),
                 dispose: () => webSocket.close(),
             };
             // launch the server when the web socket is opened
             if (webSocket.readyState === webSocket.OPEN) {
                 launch(socket2);
             } else {
-                webSocket.on('open', () => launch(socket));
+                webSocket.on('open', () => launch(socket2));
             }
         });
     }
 });
 
-function launch(socket) {
-    const reader = new rpc.WebSocketMessageReader(socket);
-    const writer = new rpc.WebSocketMessageWriter(socket);
+function launch(socket: IWebSocket) {
+    const reader = new WebSocketMessageReader(socket);
+    const writer = new WebSocketMessageWriter(socket);
     const socketConnection = server.createConnection(reader, writer, () =>
         socket.dispose()
     );
-    const serverConnection = server.createServerProcess(
+    const serverConnection:any = server.createServerProcess(
         'Python',
         'pyls' // path to python-lsp-server called with pylsp command
     );
     server.forward(socketConnection, serverConnection, (message) => {
         // console.log('server forward');
-        if (rpc.isRequestMessage(message)) {
+        if (Message.isRequest(message)) {
             if (message.method === lsp.InitializeRequest.type.method) {
                 const initializeParams = message.params;
                 // @ts-ignore

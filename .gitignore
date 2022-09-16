@@ -170,6 +170,6 @@ fabric.properties
 
 *.iml
 # 自定义
-dist/*
-dist.*
 build/*
+server/server.mjs
+server/server.mjs.map

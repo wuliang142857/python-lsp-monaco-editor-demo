@@ -4,14 +4,34 @@
 // @contact: garcia.wul@alibaba-inc.com
 // @date 2022/03/09 23:03
 
-import { listen } from '@codingame/monaco-jsonrpc';
-import * as monaco from 'monaco-editor-core'
-import {
-    MonacoLanguageClient, MessageConnection, CloseAction, ErrorAction,
-    MonacoServices, createConnection
-} from 'monaco-languageclient';
-import normalizeUrl from "normalize-url";
-import ReconnectingWebSocket from "reconnecting-websocket";
+import 'monaco-editor/esm/vs/editor/editor.all.js';
+
+// support all editor features
+import 'monaco-editor/esm/vs/editor/standalone/browser/accessibilityHelp/accessibilityHelp.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/inspectTokens/inspectTokens.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/iPadShowKeyboard/iPadShowKeyboard.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneHelpQuickAccess.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoLineQuickAccess.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneGotoSymbolQuickAccess.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickAccess/standaloneCommandsQuickAccess.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/quickInput/standaloneQuickInputService.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/referenceSearch/standaloneReferenceSearch.js';
+import 'monaco-editor/esm/vs/editor/standalone/browser/toggleHighContrast/toggleHighContrast.js';
+
+import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
+
+import { buildWorkerDefinition } from 'monaco-editor-workers';
+
+import { MonacoLanguageClient, CloseAction, ErrorAction, MonacoServices, MessageTransports } from 'monaco-languageclient';
+import { toSocket, WebSocketMessageReader, WebSocketMessageWriter } from 'vscode-ws-jsonrpc';
+import normalizeUrl from 'normalize-url';
+import { StandaloneServices } from 'vscode/services';
+import getMessageServiceOverride from 'vscode/service-override/messages';
+
+StandaloneServices.initialize({
+    ...getMessageServiceOverride(document.body)
+});
+buildWorkerDefinition('', new URL('', window.location.href).href, false);
 
 // register Monaco languages
 monaco.languages.register({
@@ -39,26 +59,26 @@ monaco.editor.create(document.getElementById("container")!, {
 });
 
 // install Monaco language client services
-MonacoServices.install(monaco);
+MonacoServices.install();
 
 // create the web socket
 const url = createUrl('/lsp')
-const webSocket = createWebSocket(url);
-// listen when the web socket is opened
-listen({
-    webSocket,
-    onConnection: connection => {
-        // create and start the language client
-        const languageClient = createLanguageClient(connection);
-        const disposable = languageClient.start();
-        connection.onClose(() => {
-            console.log("onClose");
-            disposable.dispose();
-        });
-    }
-});
+const webSocket = new WebSocket(url);
 
-function createLanguageClient(connection: MessageConnection): MonacoLanguageClient {
+webSocket.onopen = () => {
+    const socket = toSocket(webSocket);
+    const reader = new WebSocketMessageReader(socket);
+    const writer = new WebSocketMessageWriter(socket);
+    const languageClient = createLanguageClient({
+        reader,
+        writer
+    });
+    languageClient.start();
+    reader.onClose(() => languageClient.stop());
+};
+
+
+function createLanguageClient(transports: MessageTransports): MonacoLanguageClient {
     return new MonacoLanguageClient({
         name: "Sample Language Client",
         clientOptions: {
@@ -66,14 +86,14 @@ function createLanguageClient(connection: MessageConnection): MonacoLanguageClie
             documentSelector: ['python'],
             // disable the default error handler
             errorHandler: {
-                error: () => ErrorAction.Continue,
-                closed: () => CloseAction.DoNotRestart
+                error: () => ({ action: ErrorAction.Continue }),
+                closed: () => ({ action: CloseAction.DoNotRestart })
             }
         },
         // create a language client connection from the JSON RPC connection on demand
         connectionProvider: {
-            get: (errorHandler, closeHandler) => {
-                return Promise.resolve(createConnection(connection, errorHandler, closeHandler))
+            get: () => {
+                return Promise.resolve(transports);
             }
         }
     });
@@ -84,15 +104,3 @@ function createUrl(path: string): string {
     return normalizeUrl(`${protocol}://${location.host}${location.pathname}${path}`);
 }
 
-function createWebSocket(url: string): WebSocket {
-    const socketOptions = {
-        maxReconnectionDelay: 10000,
-        minReconnectionDelay: 1000,
-        reconnectionDelayGrowFactor: 1.3,
-        connectionTimeout: 10000,
-        maxRetries: Infinity,
-        debug: true
-    };
-    // @ts-ignore
-    return new ReconnectingWebSocket(url, [], socketOptions);
-}
