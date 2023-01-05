@@ -1,15 +1,21 @@
 import * as path from "path";
 import * as webpack from "webpack";
+import {Configuration as WebpackDevServerConfiguration} from "webpack-dev-server";
 import HtmlWebpackPlugin from "html-webpack-plugin";
 import {description, version} from "./package.json";
+import {WebpackConfiguration} from "webpack-cli";
 
 const sourcePath: string = path.join(__dirname, "client");
 const distPath: string = path.join(__dirname, "build");
 const mainFile: string = path.join(sourcePath, "client.ts");
 
 const publicPath: string = `/`;
-// @ts-ignore
-const config: webpack.Configuration = {
+
+interface Configuration extends WebpackConfiguration {
+    devServer?: WebpackDevServerConfiguration;
+}
+
+const config: Configuration = {
     "mode": "development",
     "devtool": "cheap-module-source-map",
     "target": "web",
@@ -73,7 +79,23 @@ const config: webpack.Configuration = {
             "inject": true,
             "favicon": path.resolve(sourcePath, "logo.png")
         }),
-    ]
+    ],
+    "devServer": {
+        "port": 8088,
+        "host": "0.0.0.0",
+        "compress": true,
+        "historyApiFallback": {
+            "rewrites": [
+                {"from": /^\/$/, "to": `${publicPath}index.html`}
+            ]
+        },
+        "headers": {
+            "Cache-Control": "no-store",
+            "Pragma": "no-cache"
+        },
+        "proxy": {
+        }
+    },
 };
 
 export default config;
